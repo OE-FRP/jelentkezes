@@ -14,6 +14,15 @@ body:
         Ne adj meg Neptun-kódot vagy más személyes adatot!
 
   - type: dropdown
+    id: semester
+    attributes:
+      label: Félév
+      options:
+        - 2026/27/1
+    validations:
+      required: true
+      
+  - type: dropdown
     id: group
     attributes:
       label: Gyakorlati csoport
