@@ -1,0 +1,34 @@
+
+name: Hallgatói jelentkezés
+description: Csatlakozás az OE-FRPR organizationhöz
+title: "[Jelentkezés] "
+labels: ["jelentkezes"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Jelentkezés a Fejlett ROS kurzus GitHub
+        organizationjébe.
+
+        A jelentkezés nyilvános GitHub Issue lesz.
+        Ne adj meg Neptun-kódot vagy más személyes adatot!
+
+  - type: dropdown
+    id: group
+    attributes:
+      label: Gyakorlati csoport
+      options:
+        - FRP1
+        - FRP2
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: Nyilatkozat
+      options:
+        - label: |
+            A kötelező programokat kizárólag
+            private repositoryban készítem.
+          required: true
