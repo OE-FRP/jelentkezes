@@ -1,0 +1,82 @@
+
+name: Hallgatoi jelentkezes jovahagyasa
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  issues: write
+
+jobs:
+  invite:
+    if: github.event.label.name == 'approved'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Hallgato meghivasa
+        id: invite
+        env:
+          GH_TOKEN: ${{ secrets.ORG_INVITE_TOKEN }}
+          ORG: OE-FRP
+          TEAM: 2026-27-1
+          STUDENT: ${{ github.event.issue.user.login }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+
+          # Csak a jelentkezesi urlappal letrehozott
+          # es megjelolt issue-kat dolgozzuk fel.
+          LABELS=$(gh api \
+            "repos/$ORG/jelentkezes/issues/$ISSUE_NUMBER" \
+            --jq '[.labels[].name]')
+
+          echo "$LABELS" | jq -e \
+            'index("jelentkezes") != null' > /dev/null
+
+          # Feleves team azonositoja
+          TEAM_ID=$(gh api \
+            "orgs/$ORG/teams/$TEAM" \
+            --jq '.id')
+
+          # Ellenorizzuk, hogy mar organizationtag-e
+          if GH_TOKEN="$GH_TOKEN" gh api \
+            "orgs/$ORG/members/$STUDENT" \
+            --silent 2>/dev/null; then
+
+            # Meglevo tag hozzarendelese a teamhez
+            gh api --method PUT \
+              "orgs/$ORG/teams/$TEAM/memberships/$STUDENT" \
+              -f role=member > /dev/null
+
+            echo "status=member" >> "$GITHUB_OUTPUT"
+          else
+            # GitHub felhasznaloi ID
+            USER_ID=$(gh api \
+              "users/$STUDENT" --jq '.id')
+
+            # Organization + team meghivo
+            gh api --method POST \
+              "orgs/$ORG/invitations" \
+              -F invitee_id="$USER_ID" \
+              -f role=direct_member \
+              -F "team_ids[]=$TEAM_ID" > /dev/null
+
+            echo "status=invited" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Visszajelzes az Issue-ban
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATUS: ${{ steps.invite.outputs.status }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          if [ "$STATUS" = "invited" ]; then
+            MESSAGE="A meghívó elkészült az OE-FRP organizationbe és a 2026-27-1 csoportba. Kérlek, fogadd el a GitHub-meghívást!"
+          else
+            MESSAGE="A jelentkezés jóváhagyva. A hallgató hozzá lett adva a 2026-27-1 csoporthoz."
+          fi
+
+          gh issue comment "$ISSUE_NUMBER" \
+            --repo OE-FRP/jelentkezes \
+            --body "$MESSAGE"
